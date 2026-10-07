@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOB Migration Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1F4E78;
+            --success: #70AD47;
+            --warning: #FFC000;
+            --info: #4472C4;
+            --danger: #E74C3C;
+            --intercom: #1F61B7;
+            --enterprise: #9C27B0;
+            --churn: #FF5722;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1900px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--primary);
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #153a55;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-export {
+            background: var(--success);
+            color: white;
+            margin-right: 10px;
+        }
+
+        .btn-export:hover {
+            background: #5a8c3a;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+        }
+
+        .toggle-btn {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #f9f9f9;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+            border-top: 4px solid var(--primary);
+        }
+
+        .metric-card.churn { border-top-color: var(--churn); }
+        .metric-card.success { border-top-color: var(--success); }
+        .metric-card.intercom { border-top-color: var(--intercom); }
+
+        .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .metric-card.churn .metric-value { color: var(--churn); }
+        .metric-card.success .metric-value { color: var(--success); }
+        .metric-card.intercom .metric-value { color: var(--intercom); }
+
+        .metric-sublabel {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .chart-card h3 {
+            color: var(--primary);
+            font-size: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        .form-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-bar input, .search-bar select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 70px 120px 110px 130px 80px 90px 90px 90px 80px 80px 90px 100px 120px;
+            gap: 10px;
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            min-width: 1400px;
+        }
+
+        .table-body {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 70px 120px 110px 130px 80px 90px 90px 90px 80px 80px 90px 100px 120px;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+            font-size: 12px;
+            min-width: 1400px;
+        }
+
+        .table-row.churn {
+            background: #FFEBEE;
+        }
+
+        .table-row.enterprise {
+            background: #f3e5f5;
+        }
+
+        .table-row:hover {
+            background: #f9f9f9;
+        }
+
+        .code-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f0f0f0;
+            color: #666;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .status-badge.complete {
+            background: #C6EFCE;
+            color: #2E7D32;
+        }
+
+        .status-badge.in-progress {
+            background: #FFF2CC;
+            color: #F57F17;
+        }
+
+        .status-badge.not-started {
+            background: #F8CBAD;
+            color: #D32F2F;
+        }
+
+        .date-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #E3F2FD;
+            color: #1565C0;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .no-date {
+            color: #999;
+            font-size: 10px;
+        }
+
+        .intercom-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--intercom);
+            color: white;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .intercom-badge:hover {
+            background: #175bb1;
+        }
+
+        .no-intercom {
+            color: #E74C3C;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .churn-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--churn);
+            color: white;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .btn-small {
+            padding: 5px 8px;
+            font-size: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #e0e0e0;
+            color: #333;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-small:hover {
+            background: var(--info);
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input[readonly] {
+            background: #f0f0f0;
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .priority-box {
+            background: #FFEBEE;
+            border-left: 4px solid var(--churn);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .export-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #F0F7FF;
+            border-radius: 6px;
+            border-left: 4px solid var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 FOB Migration Tracker</h1>
+            <p>271 total customers • 👑 2 Enterprise | 🚨 10 Actively Churned | ✅ 24 Complete | 💬 163 Intercom URLs</p>
+        </header>
+
+        <div class="view-toggle">
+            <button class="toggle-btn active" onclick="setView('all')">📊 All (271)</button>
+            <button class="toggle-btn" onclick="setView('enterprise')">👑 Enterprise (2)</button>
+            <button class="toggle-btn" onclick="setView('churned')">🚨 Actively Churned (10)</button>
+            <button class="toggle-btn" onclick="setView('active')">✅ Active (261)</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+            <button class="tab-btn" id="tab-manage" onclick="switchTab('manage')">👥 Manage Customers</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="priority-box">
+                🚨 <strong>Actively Churned/Cancelling:</strong> 10 customers have cancelled or are actively churning the software. Requires immediate attention.
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card success">
+                    <div class="metric-label">✅ Complete</div>
+                    <div class="metric-value" id="dash-complete">0</div>
+                    <div class="metric-sublabel">Migrated to FOB</div>
+                </div>
+                <div class="metric-card churn">
+                    <div class="metric-label">🚨 Actively Churned</div>
+                    <div class="metric-value" id="dash-churn">0</div>
+                    <div class="metric-sublabel">Cancelled/Churning</div>
+                </div>
+                <div class="metric-card intercom">
+                    <div class="metric-label">💬 Intercom Linked</div>
+                    <div class="metric-value" id="dash-intercom">0</div>
+                    <div class="metric-sublabel">Have URLs</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">📊 Total Active</div>
+                    <div class="metric-value" id="dash-active">0</div>
+                    <div class="metric-sublabel">Using DaySmart</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Migration Status</h3>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Team Workload</h3>
+                    <div class="chart-container">
+                        <canvas id="teamChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Tab -->
+        <div id="manage" class="tab-content">
+            <div class="export-section">
+                <strong>📥 Export Your Data:</strong><br>
+                <p style="font-size: 12px; margin-top: 8px; color: #666;">Click the button below to export your customer changes as CSV for consolidation.</p>
+                <button class="btn btn-export" onclick="exportCSV()" style="margin-top: 10px;">📥 Export as CSV</button>
+            </div>
+
+            <div class="form-card">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">🔍 Quick Filters</h3>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search by code, company, contact, email..." onkeyup="filterTable()">
+                    <select id="intercomFilter" onchange="filterTable()">
+                        <option value="">All Intercom Status</option>
+                        <option value="hasIntercom">💬 Has URL</option>
+                        <option value="noIntercom">⚠️ Missing URL</option>
+                    </select>
+                </div>
+                <div class="search-bar">
+                    <select id="statusFilter" onchange="filterTable()">
+                        <option value="">All Statuses</option>
+                        <option value="Complete">✅ Complete</option>
+                        <option value="In Progress">⏳ In Progress</option>
+                        <option value="Not Started">⬜ Not Started</option>
+                    </select>
+                    <select id="teamFilter" onchange="filterTable()">
+                        <option value="">All Teams</option>
+                        <option value="Chase">Chase</option>
+                        <option value="Frank">Frank</option>
+                        <option value="Zach">Zach</option>
+                        <option value="Unassigned">Unassigned</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <div class="table-header">
+                        <div>Code</div>
+                        <div>Company</div>
+                        <div>Contact</div>
+                        <div>Email</div>
+                        <div>Status</div>
+                        <div>Team</div>
+                        <div>Date Contacted</div>
+                        <div>Setup Call</div>
+                        <div>Intercom</div>
+                        <div>Enterprise</div>
+                        <div>Churned</div>
+                        <div>Responded</div>
+                        <div>Actions</div>
+                    </div>
+                    <div class="table-body" id="customersTable"></div>
+                </div>
+                <div id="emptyState" class="empty-state" style="display: none;">No customers found</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">Edit Customer</div>
+            <form id="customerForm" onsubmit="saveCustomer(event)">
+                <div class="form-group">
+                    <label>Company Code</label>
+                    <input type="text" id="comcode" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" id="company" readonly>
+                </div>
+                <div class="form-group">
+                    <label>📅 Date Contacted</label>
+                    <input type="date" id="dateContacted">
+                </div>
+                <div class="form-group">
+                    <label>💬 Intercom Conversation URL</label>
+                    <input type="url" id="intercomUrl" placeholder="https://app.intercom.com/a/inbox/...">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="status">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Complete">Complete</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Team Member</label>
+                    <select id="team">
+                        <option value="Chase">Chase</option>
+                        <option value="Frank">Frank</option>
+                        <option value="Zach">Zach</option>
+                        <option value="Unassigned">Unassigned</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Setup Call Date</label>
+                    <input type="date" id="setupCallDate">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="notes"></textarea>
+                </div>
+                <div id="alertBox" style="margin-bottom: 15px;"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let customers = [{"comcode": "ada", "company": "Ada Township Parks & Recreation", "contact": "Ethan Engel", "email": "eengel@adatownshipmi.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-08-28", "setupCallDate": "2026-09-23", "responded": "Yes", "notes": "Provided all information on FOB, they only offer reservation by request - not ready to move yet. ZS - Enabled in demo and reviewed. Excited about change, are going to configure in demo and request live site update soon", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "adora", "company": "Adora Trails Community Association", "contact": "Lisa Sepich", "email": "Lisa.Sepich@associatedasset.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-03", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "adventurecrossing", "company": "Adventure Crossing USA - The Dome ", "contact": "Danny Franke", "email": "dfranke@thedomenj.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475761819393", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "aliceice", "company": "Alice Noble Ice Arena", "contact": "Rob Wells/Craig Mast", "email": "rob.wells@nobleice.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "Yes", "notes": "Opted OUT of setting up flexible online booking. Not currently taking a high volume of online rentals.", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475761884880", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "alive", "company": "Alive Center", "contact": "Amanda McMillen", "email": "amanda@alivecenter.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476107285739", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "aafh", "company": "All American Field House (Monroeville, PA) Sports ", "contact": "Lonny wells ", "email": "lonnyw@allamerican.plus ", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "Cancelling after 11.8.26", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}, {"comcode": "allstars", "company": "All Stars Cricket Arena", "contact": "Sarat Chalam", "email": "csarat@battingpoint.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "allsport", "company": "Allsport Arena", "contact": "Jeff Mackler", "email": "jeff@allsportsoccer.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476140565824", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "asca", "company": "American Sports Center Avondale", "contact": "John Shields ", "email": "johnshields@americansportscenters.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "acim", "company": "Anchorage Community Ice Management", "contact": "Rob Forbes", "email": "rforbes@anchoragehockey.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-03", "responded": "Yes", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "arkrival", "company": "Ark Rival Training Academy", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Cancelled Service", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}, {"comcode": "athleteshangar", "company": "Athletes Hangar", "contact": "Dani Ordyniec", "email": "danielleo@pivotalphysio.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475761920077", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "aurora", "company": "Aurora Recreation Center", "contact": "Jeremy Schmidt ", "email": "jschmidt@auroramo.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-03", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "aviatorllc", "company": "Aviator Hockey & Figure Skating", "contact": "Paul Vinnitsky ", "email": "p.vinnitsky@mlgpllc.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bgsu", "company": "BGSU Athletics Department", "contact": "Laura Fischer ", "email": "dunnle@bgsu.edu", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bocaice", "company": "BOCA ICE", "contact": "Jake Dinov", "email": "jake@bocaice.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476140616644", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "warmemorial", "company": "Baptist Health IcePlex", "contact": "Jamie Allison ", "email": "\nallisonj@floridapanthers.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-08", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "basin", "company": "Basin Recreation", "contact": "Brandon Carrish", "email": "Brandon@basinrecreation.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-09", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "baycounty", "company": "Bay County Recreation", "contact": "Janet Alvarez", "email": "\nalvarezj@baycountymi.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "behindeverydoor", "company": "Behind Every Door Ministries, Inc", "contact": "Brittany Weatherspoon", "email": "brittany@behindeverydoor.org", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-08", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475761954924", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "berkley", "company": "Berkley School District", "contact": "Lori Suarez ", "email": "lori.suarez@berkleyschools.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-15", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "berthoud", "company": "Berthoud Recreation Center at Waggener Farm", "contact": "Conor Martin ", "email": "cmartin@berthoud.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-15", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "boulderindoor", "company": "Boulder Indoor Soccer", "contact": "Patrick Keane", "email": "patrick@boulderindoorsoccer.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-15", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475761977159", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bremertonice", "company": "Bremerton Ice Center", "contact": "LIana Lindstrom", "email": "lianalindstrom@bremertonicecenter.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143223160", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "olypensports", "company": "Bremerton Sports Center", "contact": "Tim Duffy ", "email": "\ntim.duffey@bremertonsports.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "Reached out 2nd time for blocking rules and FOB", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "brookfield", "company": "Brookfield Sports Complex", "contact": "Patrick O'connor", "email": "patrick@brookfieldindoor.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "brownstown", "company": "Brownstown Parks & Recreation", "contact": "Teresa Graves", "email": "teresag@brownstown-mi.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475762050534", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "culvercityfc", "company": "CCF5", "contact": "Kevin Eaglesston", "email": "kevin.eagleston@culvercityfootballclub.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "cascade", "company": "Cascade Township Reservations", "contact": "Madi Doge ", "email": "mdodge@cascadetwp.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "celebration", "company": "Celebration Residential Owners Assn.", "contact": "Suzzane Miller ", "email": "suzanne.miller@townhall.celebration.fl.us", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "centuryunited", "company": "Century United Soccer", "contact": "Dave Gray ", "email": "david.gray@centurysoccer.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "chambersburg", "company": "Chambersburg Recreation Department", "contact": "Samantha Hewitt ", "email": "shewitt@chambersburgpa.gov", "phone": "", "status": "In Progress", "team": "Frank", "dateContacted": "2026-09-21", "setupCallDate": "2026-10-06", "responded": "", "notes": "Happy with update, was not using online booking do to low load speeds. Testing in demo will reach out to switch over - ZS", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "charlotte", "company": "Charlotte Public Schools, MI", "contact": "Jamie Bray", "email": "\tbrayj@charlottenet.org", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "", "setupCallDate": "", "responded": "Yes", "notes": "Not Using Booking ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "chelsea", "company": "Chelsea Piers", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Enterprise - Tim outreach", "intercomUrl": "", "enterprise": true, "churn": false, "churnReason": ""}, {"comcode": "icepavilion", "company": "City Ice Pavilion", "contact": "Hannah keller ", "email": "hannahkeller1@yahoo.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-21", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "adacity", "company": "City of Ada", "contact": "Kiersten Madron", "email": "kiersten.madron@adaok.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "birmingham", "company": "City of Birmingham, MI", "contact": "Ryan Kratz ", "email": "rkatz@bhamgov.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-21", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "frankenmuth", "company": "City of Frankenmuth", "contact": "Megan Pifer ", "email": "mpifer@frankenmuthcity.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "fruitland", "company": "City of Fruitland Park", "contact": "Linda Crane ", "email": "lcrane@fruitlandpark.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "greatfalls", "company": "City of Great Falls", "contact": "Jessica Compton", "email": "jcompton@greatfallsmt.net", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-03", "responded": "Yes", "notes": "Enabled in demo, met to review. They are practicing set-up will reach out when ready to enable in live", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hendersonville", "company": "City of Hendersonville Parks Department", "contact": "Andy Gilley ", "email": "agilley@hvilletn.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hudsonville", "company": "City of Hudsonville", "contact": "Ashley perrin ", "email": "\naperrin@hudsonville.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-24", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "isanti", "company": "City of Isanti", "contact": "Stephanie Heillshem", "email": "shillesheim@cityofisanti.us", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "kentwood", "company": "City of Kentwood Parks & Recreation", "contact": "Caleb Harp ", "email": "harpc@kentwood.us", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-24", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "knoxville", "company": "City of Knoxville Parks & Recreation", "contact": "Aaron Browning ", "email": "abrowning@knoxvilletn.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-24", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "laredo", "company": "City of Laredo Parks and Recreation, TX", "contact": "Christina Morin", "email": "cmorin@ci.laredo.tx.us", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-02", "setupCallDate": "2026-10-02", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475764789228?view=List&skipRedirection=true", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "lincolnpark", "company": "City of Lincoln Park", "contact": "Dennis Anderson", "email": "danderson@citylp.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "Looks like they are cencelling 9/30 ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pasco", "company": "City of Pasco Recreation, WA", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "princeton", "company": "City of Princeton", "contact": "Shawna Jenkins ", "email": "sjenkins@princetonmn.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "richmond", "company": "City of Richmond Recreation Department", "contact": "Angel Hatfield ", "email": "ahatfield@cityofrichmond.net", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "riverdale", "company": "City of Riverdale", "contact": "Yasmin Moore ", "email": "ymoore@riverdalega.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sanger", "company": "City of Sanger", "contact": "Briana Petrille ", "email": "bpetrille@ci.sanger.ca.us", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "southmiami", "company": "City of South Miami Parks & Rec", "contact": "John Tyson", "email": "jtyson@southmiamifl.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "High churn risk.", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475762228543", "enterprise": false, "churn": true, "churnReason": "Churning"}, {"comcode": "sparta", "company": "City of Sparta Parks & Recreation, WI", "contact": "Brad Gilbertson ", "email": "\nparkdir@spartawisconsin.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "tsx", "company": "City of Taylor", "contact": "Chris Bartnicki ", "email": "cbartnicki@ci.taylor.mi.us", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "tipton", "company": "City of Tipton Parks & Rec, IA", "contact": "Adam Spangler ", "email": "aspangler@tiptoniowa.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "yakimawa", "company": "City of Yakima", "contact": "Stephen Schuller ", "email": "\nstephan.schuller@yakimawa.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "competitiveedge", "company": "Competitive Edge Sports - TAV Houston VBC", "contact": "Jess Willets ", "email": "jwillits@mycompetitiveedge.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "coppermine", "company": "Coppermine", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "volusia", "company": "County of Volusia", "contact": "Alisha Cole", "email": "acole@volusia.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7373272/conversation/215476056175784?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mccarthyice", "company": "David M McCarthy Ice Arena", "contact": "Mayy Gray ", "email": "info@mccarthyicearena.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "decatural", "company": "Decatur AL", "contact": "Hunter Allen", "email": "hallen@decatur-al.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-24", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476091015860", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "decaturcs", "company": "Decatur City Youth Services", "contact": "Johnny Jones", "email": "jbjones@decatur-al.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "churning ", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Churning"}, {"comcode": "deksuperstars", "company": "Dek Superstars", "contact": "Sebastion Giarratano", "email": "seb@deksuperstars.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475762315002", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "desmoines", "company": "Des Moines", "contact": "Kyle Ehlers", "email": "kehlers@desmoineswa.gov", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "detroitskating", "company": "Detroit Skating Club", "contact": "Jodie Tasch", "email": "\njtasich@dscclub.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-03", "setupCallDate": "2026-09-15", "responded": "Yes", "notes": "Enabled in demo, met to review. They currently not using too much online booking but are going to re-assess and reach out!", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475778526238?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "dewitt", "company": "Dewitt Area Recreation Authority", "contact": "Chad Stevens", "email": "cstevens@dewittrecreation.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "doggett", "company": "Doggett Ford Park", "contact": "Lance Rosenburg", "email": "lance.rosenberg@oakviewgroup.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "e3sports", "company": "E3 Sports Complex", "contact": "Daniella Hirvela", "email": "daniella@e3sports.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475762368082", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "eagles", "company": "Eagles Ice Arena", "contact": "Robin Bonanno", "email": "eaglesicearena@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476108020022", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "esm", "company": "Eastern Sports Management", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "ESM db", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196605339", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "easton", "company": "Easton Sportsplex", "contact": "Quin Warner", "email": "quin@kbs-capital.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143266516", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "elite90", "company": "Elite 90 Soccer", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "churning", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Churning"}, {"comcode": "elktontodd", "company": "Elkton-Todd County Parks and Recreation", "contact": "Jakop Smith", "email": "jsmith@elktonky.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-03", "setupCallDate": "", "responded": "Yes", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "civicpark", "company": "Emerald Kidsports", "contact": "AJ Gaulton", "email": "aj@eugenecivicalliance.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "frozenropeschester", "company": "FROZEN ROPES", "contact": "Donna Vitolo", "email": "donna.vitolo@frozenropes.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "factoryofchampions", "company": "Factory of Champions", "contact": "Ben Hart", "email": "benhart@factoryofchampions.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "fairfax", "company": "Fairfax Ice Arena", "contact": "", "email": "", "phone": "", "status": "Complete", "team": "Frank", "dateContacted": "", "setupCallDate": "2026-09-18", "responded": "Y", "notes": "Completed on 9/22 ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "farpost", "company": "Far Post", "contact": "Gabe Betancourt", "email": "\tgabebetancourt@gmail.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "firstbaptist", "company": "First Baptist Church - Family Life Center", "contact": "Mike Brady", "email": "mike.brady@fbcabilene.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "flyers", "company": "Flyers Training Center", "contact": "Jay Freeman", "email": "Jay_Freeman@comcastspectacor.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-01", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143376979", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "flyingfives", "company": "Flying Fives Fieldhouse", "contact": "Joshua Burkhart", "email": "info@flyingfives.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "2026-09-28", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476108890625?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "fondulac", "company": "Fon du Lac Park District", "contact": "Kylie Brown", "email": "Kbrown@fondulacpark.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "2026-09-29", "responded": "Yes", "notes": "Will be turning on FOB 09/30/26. All set!", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "forosports", "company": "Foro Sports Club", "contact": "Bob Peinado", "email": "bob@forosc.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-23", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476072980430", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "fresnoarena", "company": "Fresno Indoor Soccer", "contact": "Jonny Navaro", "email": "jonny@fresnoindoorsoccer.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "frozenropesalbany", "company": "Frozen Ropes Albany", "contact": "Bill Farrell", "email": "albany@frozenropes.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143447664", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "planetice", "company": "GSL Recreation Centres", "contact": "Tara Boggs", "email": "", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-03", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/shared/mentions/conversation/215475746306052?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "galleriadallas", "company": "Galleria Dallas Ice Skating Center", "contact": "Chris Pearce", "email": "cpearce@trademarkproperty.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "2026-10-08", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476109269113", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "ryliecrest", "company": "Gambeta  ", "contact": "", "email": "", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Cancelled Service", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}, {"comcode": "utica", "company": "Nexus Center / Garden Entertainment LLC", "contact": "Michael Lehr", "email": "michaellehr@uticacomets.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143742889", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "nashvillewarriors", "company": "Gary Force Acura Ice Arena", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "gilmour", "company": "Gilmour Academy", "contact": "Ryan Ryzner", "email": "ryznerr@gilmour.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-03", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7373272/conversation/215475778198106?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "missoula", "company": "Glacier Ice Rink", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "glomar", "company": "Glomar", "contact": "Jon Minter", "email": "jon@glomarusa.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-03", "setupCallDate": "2026-09-24", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475778222149", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "golazo", "company": "Golazo Soccer Academy", "contact": "Shawn Davis", "email": "\tshawn@golazofields.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "No", "notes": "Cancelled Service", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}, {"comcode": "grandsports", "company": "Grand Sports Arena", "contact": "Lorena Gamboa ", "email": "lorengamboa@gmail.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "gavb", "company": "Great American Center", "contact": "Chris Gosha", "email": "chris@highlinearena.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143865127", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "greatplains", "company": "Great Plains Recreation Center", "contact": "Audrey Malley", "email": "audrey@gprf.ca", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143792315", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "greensboroice", "company": "Greensboro Ice House", "contact": "Nicole Gaboury", "email": "niceskate18@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144188518", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "greggrant", "company": "Greg Grant Sportsplex", "contact": "Jimmy Moceri", "email": "jimmy@greggrantbasketball.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144228882", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hanover", "company": "Hanover Improvement Society", "contact": "Dick Dodds", "email": "ddodds@campionrink.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144295627", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hartland", "company": "Hartland Consolidated Schools", "contact": "Jamie Freese", "email": "jamiefreese@hartlandschools.us", "phone": "", "status": "In Progress", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-06", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144386044", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hatfield", "company": "Hatfield Ice", "contact": "Megan Otto", "email": "meg261338@aol.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144440288", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "highlands", "company": "Highlands Sports Complex", "contact": "Harvey Greenidge", "email": "hgreenidge@highlandssports.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476144580090", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "hillcity", "company": "Hill City Sports Center", "contact": "Bryan Schmidt", "email": "bschmidt@easternsportsmanagement.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "Opted out of onboarding. Working with ESM.", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196605339", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "horizonsedge", "company": "Horizons Edge Sports Campus", "contact": "Cindy Farmer", "email": "farmerc@horizonsva.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145087636", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mullettice", "company": "Howard G. Mullett Ice Center", "contact": "Craig Peterson", "email": "petersen@arrowheadschools.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-16", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "huntsville", "company": "Huntsville Ice Sports Center", "contact": "Sharon Putnam ", "email": "feput02@comcast.net", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "impact", "company": "IMPACT Center", "contact": "Connie Rubin", "email": "connie@koinonia.cc", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476056378336", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rocklin", "company": "In-Shape Family Fitness: Rocklin Sports Complex", "contact": "Mickey Bellah ", "email": "\njbellah@calfamfit.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "indoor5", "company": "Indoor 5 Soccer", "contact": "Alfredo Cruz", "email": "\nAlfredo@indoor5.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "indoorsoccerworld", "company": "Indoor Soccer World", "contact": "Crono Crono ", "email": "ultimateindoormesquite@gmail.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "inline309", "company": "Inline309", "contact": "Eileen Rotanz", "email": "\tinfo@inline309.org", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "2026-10-08", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475796523758?view=List&skipRedirection=true", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "iowawestsportsplex", "company": "Iowa West Sports Plex", "contact": "Maureen Wright ", "email": "maureen@iowawestsportsplex.com", "phone": "", "status": "In Progress", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-07", "responded": "", "notes": "Wants to chat it over with her boss before switching ", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "kembawalker", "company": "Kemba Walker Sports Academy", "contact": "Mark Smith", "email": "marksmith@smitharenas.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-03", "setupCallDate": "2026-09-04", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475778264408", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "keva", "company": "Keva Sports Center", "contact": "Eric Fritz", "email": "eric.fritz@kevasports.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "http://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145542854", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "keypen", "company": "Key Pen Parks", "contact": "Tracey Perkosky", "email": "tracey@keypenparks.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145558421", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "kirksville", "company": "Kirksville Parks and Recreation", "contact": "Robin Harden", "email": "rlharden@kirksville.gov", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "2026-10-07", "responded": "Yes", "notes": "Met to demo, they are going to work on event type configuration and reach out to switch", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475796682265", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "kraemerfields", "company": "Kraemer Fields", "contact": "Steve Kraemer", "email": "kraemerfields@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145635857", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "krakenkourts", "company": "Kraken", "contact": "Tara Woodbury", "email": "\ttwoodbury@pirateventures.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-30", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "kraken", "company": "Kraken Community Iceplex", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Enterprise - Tim outreach", "intercomUrl": "", "enterprise": true, "churn": false, "churnReason": ""}, {"comcode": "lasurf", "company": "LA Surf Soccer Club", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "End-of-training dropoff. Churn risk.", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Churning"}, {"comcode": "motionindoor", "company": "La Cima Sports Complex", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Cant log in to this DB? ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "lawson", "company": "Lawson Arena - WMU", "contact": "Brandon Sturgeon", "email": "Brandon.C.Sturgeon@wmich.edu", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "lakeside", "company": "LeFrak Center at Lakeside", "contact": "Aracely Tlantechi", "email": "info@lefraklakeside.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "legacy", "company": "Legacy Center Sports Complex", "contact": "Andrea Carrier ", "email": "acarriere@legacycentermichigan.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "lexington", "company": "Lexington Parks & Recreation", "contact": "Laura Duran ", "email": "lvduran@lexingtonnc.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "lksoccer", "company": "Lil' Kickers-LKSOCCER.COM", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "longmontindoor", "company": "Longmont Indoor Soccer", "contact": "Patrick Keane", "email": "patrick@boulderindoorsoccer.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-02", "setupCallDate": "2026-09-15", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475762008451", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mfcsports", "company": "MFC Sports Complex", "contact": "Roy Henning", "email": "\troy@mofoco.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "maracana", "company": "Maracana Indoor Sports Arena", "contact": "Denise Duarte", "email": "deniseochoa88@yahoo.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "marysville", "company": "Marysville, MI", "contact": "Stefanie Schneider", "email": "\tsschneider@cityofmarysvillemi.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143490950", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mavericks", "company": "Mavericks Training Facility", "contact": "Meghan reilly ", "email": "meghan.reilly10@gmail.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-23", "setupCallDate": "", "responded": "", "notes": "Made contact with her due to them reaching out about some additional training ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mayaindoor", "company": "Maya Indoor Soccer", "contact": "Mario Jaimes", "email": "kingsolutionservices@yahoo.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475797431877?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "medical", "company": "Medical Lake Parks & Recreation", "contact": "Ivana Lomas", "email": "\tilomas@medical-lake.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "memphis", "company": "Memphis Sports and Events Center", "contact": "Jasmine Howell", "email": "business@themsec.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143253989", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mrtc", "company": "Michigan Stars Facilities", "contact": "Dan Chunn", "email": "dchunn@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476057230827", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "midsouthice", "company": "Mid-South Ice House", "contact": "Al Austin", "email": "chip.austiniv@gmail.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143138340", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "milton", "company": "Milton Sports Dome", "contact": "Jon Kilmartin", "email": "\tjkilmartin@colabsport.ca", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476143028100", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mountlake", "company": "Mountlake Terrace", "contact": "Andrew Appelwick", "email": "aappelwick@mltwa.gov", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476142974897?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "monroe", "company": "MultiSports Kingdom", "contact": "Mike Klatsky", "email": "mikeklatsky@multisportskingdom.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476108604761?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "muskegon", "company": "Muskegon Trinity Health Arena", "contact": "Jake Laime", "email": "jake@trinityhealtharena.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "", "responded": "No", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475797572447?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "nsports", "company": "N-Sports Rec Center", "contact": "Wil Lampkin", "email": "lampkin.wil@gmail.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476110061161", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rapidsoccer", "company": "NM Rapids Soccer Club", "contact": "Eric Dooley", "email": "edool9@gmail.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-04", "setupCallDate": "2026-09-23", "responded": "Yes", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "nesportshub", "company": "New England Sports Hub", "contact": "Craig Riotto", "email": "criotto51@outlook.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476056250318", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "newshoreham", "company": "New Shoreham Recreation", "contact": "David Sniffen", "email": "dsniffen@newshorehamri.gov", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476110150219", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "nextlevel", "company": "Next Level Sports Center", "contact": "Anniemarie Boaman", "email": "annemarie.cheatham@domesportscenter.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-25", "setupCallDate": "2026-09-29", "responded": "Y", "notes": "Had demo will be reaching out after testing in demo db", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476110877882", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "baierl", "company": "Next Step Hockey", "contact": "Jim Pasquine", "email": "\tjpasquine@nextstephockey.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476140210618?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "nittany", "company": "Nittany Valley Sports Centre", "contact": "Danny Orton ", "email": "dorton@thecentrepa.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476056831457", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "dryice", "company": "Nor-Cal In-line", "contact": "Mathew Herzog", "email": "norcalinline@gmail.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476140319243", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "norcross", "company": "Norcross Fieldhouse", "contact": "Jonatan Garro", "email": "info@norcrossfieldhouse.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-15", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475968141148?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "northriverside", "company": "North Riverside Recreation", "contact": "Jeanmarie Hajer-o-connor", "email": "jhajer-oconnor@northriverside-il.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476140829915?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "northernhockeyacademy", "company": "Northern Hockey Academy", "contact": "Brain Doyle", "email": "brian@northernhockeyacademy.ca", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "wasco", "company": "Northern Wasco County Parks & Rec", "contact": "Sarah Zeigenhagen", "email": "\tadmin@nwprd.org", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476141741988", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "novasports", "company": "Nova Sports Arena", "contact": "Dejan Milosevic", "email": "\ndejan@novasportsarena.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476142257628?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "coralridge", "company": "OVG Coralville", "contact": "Jason Anderson", "email": "jason.anderson@oakviewgroup.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-23", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476073011212", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "olympus", "company": "Olympus Sports Coliseum - Lil' Kickers Greater Sac", "contact": "Kristine Spencer", "email": "kristine.olympus@gmail.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "onondaga", "company": "Onondaga County Parks", "contact": "Robin Augello", "email": "robinaugello@ongov.net", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-07", "responded": "Yes", "notes": "Had demo will be reaching out after testing in demo db", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "orlandohealth", "company": "Orlando Health - National Training Center", "contact": "Mateo DeAngulo", "email": "Mateo.deangulo@orlandohealth.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-15", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "otfcdome", "company": "Orleans Dome", "contact": "Ashley Cancura", "email": "ashley@orleansdome.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "2026-09-17", "responded": "Y", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475982592972?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pnysportsarena", "company": "PNY Sports Arena", "contact": "Eric Knodel", "email": "eknodel@pnysportsarena.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145683037", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "palmharbor", "company": "Palm Harbor Parks and Recreation", "contact": "Erica Lynford", "email": "elynford@phparksandrec.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145688338", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "panthers", "company": "Panthers", "contact": "Colleen Clark ", "email": "ClarkC@floridapanthers.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "parktownship", "company": "Park Township", "contact": "Jordan Zych ", "email": "jzych@parktownship.org", "phone": "", "status": "Complete", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-02", "responded": "Yes", "notes": "Completed 10/2/26 ", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "parkview", "company": "Park View Athletic Complex", "contact": "Jason Winter", "email": "jmwinter@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145737289", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pelham", "company": "Pelham Recreation", "contact": "Diane Bartley ", "email": "diane.bartley@townofpelhamny.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pickeringfc", "company": "Pickering Football Club", "contact": "Lisa Fernandez", "email": "psc.admin@pickeringfc.ca", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pinnacleathletics", "company": "Pinnacle Athletics", "contact": "Drianna Navarro Castaneda", "email": "drianna@pinnacle-athletic.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476160866537", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pisa", "company": "Pittsburgh Indoor Sports Arena", "contact": "Jenna Plumber", "email": "jenna@pisausa.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476286182901", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "pittsfield", "company": "Pittsfield Township Parks & Recreation", "contact": "Kim Mcintire", "email": "kmmcintire@pittsfield-mi.gov", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-30", "setupCallDate": "2026-10-05", "responded": "Yes", "notes": "Met to demo, they are going to work on event type configuration and reach out to switch", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "portjefferson", "company": "Port Jefferson Recreation, NY", "contact": "Renee Lemmerman", "email": "rlemmerman@portjeff.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-30", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "postfalls", "company": "Post Falls Parks and Recreation Department", "contact": "Hayle McCray", "email": "hmccray@postfalls.gov", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-30", "setupCallDate": "2026-10-02", "responded": "Yes", "notes": "Met to demo, they are going to work on event type configuration and reach out to switch", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476179464875?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "powell", "company": "Powell Aquatic Center", "contact": "Tanya Bonner ", "email": "tbonner@cityofpowell.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "provo", "company": "Provo City Peaks Ice Arena", "contact": "Foster Watabe", "email": "fwatabe@provo.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161296437", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "quadra", "company": "Quadra Soccer", "contact": "Pedro Verissimo", "email": "pedro@quadra-us.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161323442", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rawlins", "company": "Rawlins Family Rec Center", "contact": "Nikki Howell", "email": "nhowell@rawlinswy.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161357557", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "newbraunfels", "company": "Rec Center", "contact": "Kourtney Reneau ", "email": "kourtney@newbraunfelsrec.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "reedley", "company": "Reedley Community Services Department", "contact": "Sarah Reid", "email": "sarah.reid@reedley.ca.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161396323", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "renoice", "company": "Reno Ice", "contact": "Joaine Malarchuk", "email": "\tjoanie@renoice.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "2026-10-09", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475983270148", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "riversports", "company": "River Sports Center", "contact": "Jeremy Etzkorn", "email": "admin@riversportscenter.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "riverton", "company": "Riverton Recreation and Events", "contact": "Vicki Wartman ", "email": "vwartman@rivertonutah.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rochester", "company": "Rochester Sports Garden", "contact": "Josh Johnson ", "email": "\njosh@rocsportsgarden.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "roseville", "company": "Roseville Parks and Recreation", "contact": "James Franken", "email": "james.franken@cityofroseville.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-26", "setupCallDate": "", "responded": "Yes", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "allisonsportstown", "company": "SGF Sports, Inc dba Betty and Bobby Allison Sports", "contact": "Chris Martin ", "email": "cmartin@sportsfacilities.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sozosports", "company": "SOZO Sports of Central Washington", "contact": "Steve Sires ", "email": "steve@sozosports.net", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "saddleback", "company": "SVUSD Community Services", "contact": "Tiffani Volpe ", "email": "Tiffani.Volpe@svusd.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "salmon", "company": "Salmon Creek Indoor Sports Arena", "contact": "Glen Cox", "email": "info@scsoccerarena.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196675492", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sdia", "company": "San Diego Ice Arena", "contact": "Philip Linssen", "email": "sdiaice@aol.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196731737", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sandmans", "company": "Sandman's Courts", "contact": "Weston Bannister", "email": "alkiwes@hotmail.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "saratogasprings", "company": "Saratoga Springs", "contact": "Heston Williams", "email": "hwilliams@saratogasprings-ut.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196765425", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sheboygan", "company": "School District of Sheboygan Falls", "contact": "Bryan Hansen", "email": "brhansen@sheboyganfalls.k12.wi.us", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196789609", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sharks", "company": "Sharks Ice", "contact": "Felipe Ugalde", "email": "fugalde@sharksice.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196815252", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "shelbytwp", "company": "Shelby Township", "contact": "Joe Youngblood", "email": "jyoungblood@shelbytwp.org", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "2026-10-02", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196844058", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "siview", "company": "Si View Metro Parks", "contact": "Mina Rudd", "email": "mrudd@siviewpark.org", "phone": "", "status": "In Progress", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "2026-10-02", "responded": "Yes", "notes": "Enabled in demo. They will touch base if/when they want enabled in live db.", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196875246", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "skatequest", "company": "SkateQuest", "contact": "Alejandra Mueller", "email": "amueller@skatequest.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196911543", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "predators", "company": "Smashville Ice Rinks", "contact": "Michelle Kennedy", "email": "mkennedy@nashvillepredators.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196974566", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "snoking", "company": "Sno-King Ice Arenas", "contact": "Jamie Huscroft", "email": "jamie@snokingice.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476197014839", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "snoopysice", "company": "Snoopy's Home Ice", "contact": "Tamara Stanley", "email": "tamara@snoopyshomeice.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-08", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475852035058", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "soccerasylum", "company": "Soccer Asylum", "contact": "Matt Ganias", "email": "matt@soccerasylum.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-08", "setupCallDate": "2026-10-09", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475852123333", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "soccerspectrum", "company": "Soccer Spectrum", "contact": "Stephen Barton", "email": "stephen@veritymortgage.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476216898368", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "soccerzonetx", "company": "SoccerZone", "contact": "Darren Brown", "email": "\tdarren@soccerzonesouthaustin.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476198507201", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "xlorlando", "company": "Sofive - XL Sports World", "contact": "Catherine Myers", "email": "cat@xlsportsworld.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "spectategroup", "company": "Spectate Group", "contact": "Ryan Zanon", "email": "rzanon@spectategroup.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476216943874", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "scor", "company": "Sports Center Of Richmond - Tax ID: 20-5575647", "contact": "Tyler Pardue", "email": "tyler@scor-richmond.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476216996631", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "scity", "company": "Sports City Arena Sports Centers", "contact": "Nate Peters", "email": "nate@playsportscity.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145794105", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "spc", "company": "Sports Performance Center", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sportsplexbc", "company": "Sportsplex Management Ltd.", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "stlsc", "company": "St. Luke's Sports Center", "contact": "Josh Stout", "email": "josh@stlukessportscenter.com", "phone": "", "status": "Complete", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "2026-10-05", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145815896", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "stallionsports", "company": "Stallions Sports", "contact": "Prabu Mohan", "email": "ram.cm27@gmail.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476160904387", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "starfire", "company": "Starfire Sports", "contact": "Ben Oliver", "email": "beno@starfiresports.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476160940454", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "statenisland", "company": "Staten Island Skating Pavilion", "contact": "Sarah Tirro", "email": "sarahtirro@thepavilion.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476217109071", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sunprairieice", "company": "Sun Prairie Ice Arena", "contact": "Betsy McCrary", "email": "betsy.mccrary@sunprairieice.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "reno", "company": "Swift Sportsdome", "contact": "Leslie Anderson", "email": "landerson@swiftsportsdome.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476218750304", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "tamoshanter", "company": "Sylvania Tam O Shanter  Sports Inc.", "contact": "Tom Cline", "email": "gm@sylvaniatamoshanter.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476218819030", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "theshop", "company": "THE SHOP NM", "contact": "Rodrigo Vasquez", "email": "rod_vasquez@yahoo.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "totalsoccer", "company": "TOCA", "contact": "Stephanice Frustaci", "email": "finance@tocafootball.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219130748", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bladiumdn", "company": "TOCA Denver at Bladium", "contact": "Matthew Grey", "email": "mgrey@tocafootball.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219182289", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "teaneck", "company": "Teaneck, NJ", "contact": "Sean Powers", "email": "spowers@teanecknj.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219231879", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "terryconners", "company": "Terry Conners Rink", "contact": "Ken Smith", "email": "ksmith@stamfordct.gov", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-08", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215475852185124", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "thearenarinks", "company": "The Arena Rinks", "contact": "Scott Turano", "email": "scott@thesportsarena.net", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219266299", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "frisco", "company": "The Athlete Factory", "contact": "Brian Duncan", "email": "duncanbrian@mac.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219320140", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "athleticcampus", "company": "The Athletic Campus", "contact": "Nate Vatalaro", "email": "info@theathleticcampus.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476219350537", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "beachyyc", "company": "The Beach YYC", "contact": "Elliot Weinstein", "email": "\nelliot@thebeachyyc.ca", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476286369893", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "chestercounty", "company": "The Campus Chester County", "contact": "Courtney O'Conner", "email": "\tcourtney.riches@gmail.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476286458449", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "thecube", "company": "The Cube Ice and Entertainment Center", "contact": "Michael Baxter", "email": "michael.baxter@polaricenc.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476287707771", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "dome", "company": "The Dome", "contact": "Rossell Moore", "email": "\t\nrussell@thedome.us", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "thepitch", "company": "The Pitch Athletic Training Facility", "contact": "Dale Jobes", "email": "dale@cipower-solutions.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7373272/conversation/215476107482628", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rollinice", "company": "The Plex", "contact": "Robert Herbst", "email": "rherbst@gotoplex.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476285423996", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "rinks", "company": "The Rinks & Great Park Ice", "contact": "Cindy Frazier", "email": "cfrazier@therinks.com", "phone": "", "status": "Complete", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "They had already switched", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "tsclittlerock", "company": "The Soccer Center", "contact": "Raouf kassissieh", "email": "admin@thesoccercenter.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476288362872", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "sportsacademy", "company": "The Sports Academy", "contact": "Jared McRae", "email": "jared@thesportsacademy.net", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476288805778", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "steelice", "company": "The Steel Ice Center", "contact": "Angela Krem", "email": "angela@steel-ice.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476288901803", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "torontorock", "company": "Toronto Rock Athletics Inc.", "contact": "Dion Smith", "email": "dsmith@torontorock.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-10-07", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476289000106", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "amherst", "company": "Town of Amherst NY", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "belleair", "company": "Town of Belleair - Recreation", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bristol", "company": "Town of Bristol - Community Resources", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "mammothlakes", "company": "Town of Mammoth Lakes", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "palmbeach", "company": "Town of Palm Beach, FL", "contact": "Lauren Bayard", "email": "lbayard@townofpalmbeach.com", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "Y", "notes": "Enabled in demo. Working on set-up, they will schedule meeting to complete", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215475984287933?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "payson", "company": "Town of Payson - Parks and Recreation", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-24", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "petawawa", "company": "Town of Petawawa", "contact": "Haley Ruhnke", "email": "bookings@petawawa.ca", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "whitestown", "company": "Town of Whitestown", "contact": "Robyn Appler", "email": "\trecreation@whitestown.net", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "2026-09-17", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "trenton", "company": "Trenton Parks & Recreation", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "twinfalls", "company": "Twin Falls Parks & Recreation", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "ulete", "company": "ULETE", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "penguins", "company": "UPMC Lemieux Sports Complex", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "plymouthac", "company": "USA Hockey Arena", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "upperdublin", "company": "Upper Dublin Parks & Recreation", "contact": "Tammy Echevarria", "email": "techevarria@upperdublin.net", "phone": "", "status": "In Progress", "team": "Zach", "dateContacted": "2026-09-24", "setupCallDate": "2026-09-25", "responded": "Y", "notes": "Enabled in demo. Working on set-up, they will schedule meeting to complete", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/admin/7385411/conversation/215476089846599?view=List", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "vacavilleice", "company": "Vacaville Ice Sports", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "vashon", "company": "Vashon Park District", "contact": "Cheryl Richmond ", "email": "crichmond@vashonparks.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "2026-10-02", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "vetta", "company": "Vetta Sports", "contact": "Austin Hofmeister", "email": "austinh@vettasports.com", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "elmwood", "company": "Village of Elmwood Park Parks & Recreation", "contact": "Ted Gruber", "email": "aschmidt@elmwoodpark.org", "phone": "", "status": "In Progress", "team": "Chase", "dateContacted": "", "setupCallDate": "2026-10-05", "responded": "Yes", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "howard", "company": "Village of Howard", "contact": "John rupno ", "email": "\njrupno@villageofhoward.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "usp", "company": "WSFS Bank Sportsplex", "contact": "Patreick kelleher ", "email": "pkelleher@philadelphiaunion.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "wpd", "company": "Washington Park District", "contact": "Burk Vervloet ", "email": "burk@washingtonparkdistrict.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-02", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "waveaquatics", "company": "Wave Aquatics", "contact": "Cambria Dawn", "email": "contact@waveaquatics.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-25", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476107866772", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "wavesports", "company": "Wave Sports", "contact": "Adam Cipolla ", "email": "\nadam@wavesports.ca", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "waynecounty", "company": "Wayne County Parks, MI", "contact": "Steve Winley ", "email": "swinkelm@waynecounty.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "weber", "company": "Weber County Ice Sheet", "contact": "Mariko rollins ", "email": "mrollins@webercountyutah.gov", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "westmidland", "company": "West Midland Family Center", "contact": "Melissa Finney ", "email": "finneym@wmfc.org", "phone": "", "status": "Complete", "team": "Frank", "dateContacted": "2026-09-03", "setupCallDate": "2026-09-09", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "westernfair", "company": "Western Fair Sports Centre", "contact": "Craig Goyeche ", "email": "cgoyetche@westernfairdistrict.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "westsidesummerbaseball", "company": "Westside Summer Baseball", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Unassigned", "dateContacted": "2026-09-22", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bellinghamsportsplex", "company": "Whatcom Sports and Recreation", "contact": "Krista Cohen ", "email": "Kristac@bellinghamsportsplex.com", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "wtrc", "company": "White Township Recreation", "contact": "Jessica Prusnock ", "email": "jessica@whitetownship.org", "phone": "", "status": "Not Started", "team": "Frank", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/new-conversation", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "wichitaignite", "company": "Wichita Ignite Volleyball Club & S.H.R.E.D Gym", "contact": "Ashley Sanchez", "email": "\nashley.sanchez@wichita-ignite-vbc.com", "phone": "", "status": "Not Started", "team": "Zach", "dateContacted": "", "setupCallDate": "", "responded": "N", "notes": "Cancelling as of 10/31", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}, {"comcode": "wideworldsports", "company": "WideWorld Sports Center", "contact": "Nishan Artinian", "email": "nishan@wideworld-sports.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196544853", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "willowhill", "company": "Willow Hill Dome", "contact": "Susan Fraser", "email": "susanfras@comcast.net", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161018795", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "woodstreamchurch", "company": "Woodstream Family Life Center", "contact": "Jonathan Wingfield", "email": "j.wingfield@woodstreamchurch.org", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-28", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476145759151", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "worldice", "company": "World Ice Arena", "contact": "Hannah Keller", "email": "hannahkeller1@yahoo.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-09-29", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476161068179", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "bisc", "company": "XL Sports World Hatfield", "contact": "Ashlin", "email": "ashlin@sofive.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196461580", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "dreamsports", "company": "XLSW", "contact": "Ashlin", "email": "ashlin@sofive.com", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "2026-10-01", "setupCallDate": "", "responded": "", "notes": "", "intercomUrl": "https://app.intercom.com/a/inbox/ozqhony0/inbox/conversation/215476196461580", "enterprise": false, "churn": false, "churnReason": ""}, {"comcode": "zsports", "company": "Z Sports", "contact": "", "email": "", "phone": "", "status": "Not Started", "team": "Chase", "dateContacted": "", "setupCallDate": "", "responded": "", "notes": "Cancelled", "intercomUrl": "", "enterprise": false, "churn": true, "churnReason": "Cancelling"}];
+        let currentView = 'all';
+        let editingIndex = -1;
+        let statusChart = null;
+        let teamChart = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDashboard();
+            renderCustomers();
+        });
+
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderCustomers();
+            updateDashboard();
+        }
+
+        function getFilteredCustomers() {
+            if (currentView === 'enterprise') {
+                return customers.filter(c => c.enterprise);
+            } else if (currentView === 'churned') {
+                return customers.filter(c => c.churn);
+            } else if (currentView === 'active') {
+                return customers.filter(c => !c.churn);
+            }
+            return customers;
+        }
+
+        function updateDashboard() {
+            const filtered = getFilteredCustomers();
+            const complete = filtered.filter(c => c.status === 'Complete').length;
+            const inProgress = filtered.filter(c => c.status === 'In Progress').length;
+            const notStarted = filtered.filter(c => c.status === 'Not Started').length;
+            const churn = customers.filter(c => c.churn).length;
+            const intercom = customers.filter(c => c.intercomUrl).length;
+            const active = customers.filter(c => !c.churn).length;
+
+            document.getElementById('dash-complete').textContent = complete;
+            document.getElementById('dash-churn').textContent = churn;
+            document.getElementById('dash-intercom').textContent = intercom;
+            document.getElementById('dash-active').textContent = active;
+
+            updateCharts(complete, inProgress, notStarted);
+        }
+
+        function updateCharts(complete, inProgress, notStarted) {
+            if (statusChart) statusChart.destroy();
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                statusChart = new Chart(statusCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Complete', 'In Progress', 'Not Started'],
+                        datasets: [{
+                            data: [complete, inProgress, notStarted],
+                            backgroundColor: ['#70AD47', '#FFC000', '#E74C3C'],
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } }
+                        }
+                    }
+                });
+            }
+
+            if (teamChart) teamChart.destroy();
+            const filtered = getFilteredCustomers();
+            const teams = ['Chase', 'Frank', 'Zach', 'Unassigned'];
+            const teamData = teams.map(t => filtered.filter(c => c.team === t).length);
+            const teamCompleted = teams.map(t => filtered.filter(c => c.team === t && c.status === 'Complete').length);
+
+            const teamCtx = document.getElementById('teamChart');
+            if (teamCtx) {
+                teamChart = new Chart(teamCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: teams,
+                        datasets: [
+                            { label: 'Complete', data: teamCompleted, backgroundColor: '#70AD47' },
+                            { label: 'Total', data: teamData, backgroundColor: '#E0E0E0' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } } }
+                    }
+                });
+            }
+        }
+
+        function renderCustomers() {
+            const filtered = getFilteredCustomers();
+            const table = document.getElementById('customersTable');
+            table.innerHTML = filtered.map((c, i) => {
+                const actualIndex = customers.indexOf(c);
+                const intercomDisplay = c.intercomUrl ? 
+                    `<button type="button" class="intercom-badge" onclick="openIntercom('${c.intercomUrl}')">💬</button>` : 
+                    '<span class="no-intercom">⚠️</span>';
+                const dateDisplay = c.dateContacted ? 
+                    `<span class="date-badge">${c.dateContacted}</span>` : 
+                    '<span class="no-date">-</span>';
+                const churnDisplay = c.churn ? 
+                    `<span class="churn-badge">${c.churnReason}</span>` : 
+                    '<span style="color: #999;">Active</span>';
+                return `
+                    <div class="table-row ${c.churn ? 'churn' : ''} ${c.enterprise ? 'enterprise' : ''}">
+                        <div><span class="code-badge">${c.comcode}</span></div>
+                        <div><strong>${c.company}</strong></div>
+                        <div>${c.contact || '-'}</div>
+                        <div>${c.email || '-'}</div>
+                        <div><span class="status-badge ${c.status.toLowerCase().replace(' ', '-')}">${c.status}</span></div>
+                        <div>${c.team}</div>
+                        <div>${dateDisplay}</div>
+                        <div>${c.setupCallDate || '-'}</div>
+                        <div>${intercomDisplay}</div>
+                        <div>${c.enterprise ? '👑' : '-'}</div>
+                        <div>${churnDisplay}</div>
+                        <div>${c.responded || '-'}</div>
+                        <div><button type="button" class="btn-small" onclick="editCustomer(${actualIndex})">Edit</button></div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('emptyState').style.display = filtered.length === 0 ? 'block' : 'none';
+        }
+
+        function filterTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const team = document.getElementById('teamFilter').value;
+            const intercom = document.getElementById('intercomFilter').value;
+            const filtered = getFilteredCustomers();
+
+            const results = filtered.filter(c => {
+                const matchSearch = !search || c.comcode.toLowerCase().includes(search) ||
+                                    c.company.toLowerCase().includes(search) || 
+                                    (c.contact || '').toLowerCase().includes(search) ||
+                                    (c.email || '').toLowerCase().includes(search);
+                const matchStatus = !status || c.status === status;
+                const matchTeam = !team || c.team === team;
+                const matchIntercom = !intercom || (intercom === 'hasIntercom' && c.intercomUrl) || 
+                                      (intercom === 'noIntercom' && !c.intercomUrl);
+                return matchSearch && matchStatus && matchTeam && matchIntercom;
+            });
+
+            const table = document.getElementById('customersTable');
+            table.innerHTML = results.map((c, i) => {
+                const actualIndex = customers.indexOf(c);
+                const intercomDisplay = c.intercomUrl ? 
+                    `<button type="button" class="intercom-badge" onclick="openIntercom('${c.intercomUrl}')">💬</button>` : 
+                    '<span class="no-intercom">⚠️</span>';
+                const dateDisplay = c.dateContacted ? 
+                    `<span class="date-badge">${c.dateContacted}</span>` : 
+                    '<span class="no-date">-</span>';
+                const churnDisplay = c.churn ? 
+                    `<span class="churn-badge">${c.churnReason}</span>` : 
+                    '<span style="color: #999;">Active</span>';
+                return `
+                    <div class="table-row ${c.churn ? 'churn' : ''} ${c.enterprise ? 'enterprise' : ''}">
+                        <div><span class="code-badge">${c.comcode}</span></div>
+                        <div><strong>${c.company}</strong></div>
+                        <div>${c.contact || '-'}</div>
+                        <div>${c.email || '-'}</div>
+                        <div><span class="status-badge ${c.status.toLowerCase().replace(' ', '-')}">${c.status}</span></div>
+                        <div>${c.team}</div>
+                        <div>${dateDisplay}</div>
+                        <div>${c.setupCallDate || '-'}</div>
+                        <div>${intercomDisplay}</div>
+                        <div>${c.enterprise ? '👑' : '-'}</div>
+                        <div>${churnDisplay}</div>
+                        <div>${c.responded || '-'}</div>
+                        <div><button type="button" class="btn-small" onclick="editCustomer(${actualIndex})">Edit</button></div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('emptyState').style.display = results.length === 0 ? 'block' : 'none';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function openIntercom(url) {
+            window.open(url, '_blank');
+        }
+
+        function editCustomer(index) {
+            editingIndex = index;
+            const c = customers[index];
+            document.getElementById('comcode').value = c.comcode;
+            document.getElementById('company').value = c.company;
+            document.getElementById('dateContacted').value = c.dateContacted || '';
+            document.getElementById('intercomUrl').value = c.intercomUrl || '';
+            document.getElementById('status').value = c.status;
+            document.getElementById('team').value = c.team;
+            document.getElementById('setupCallDate').value = c.setupCallDate || '';
+            document.getElementById('notes').value = c.notes || '';
+            
+            const alertBox = document.getElementById('alertBox');
+            if (c.churn && c.churnReason) {
+                alertBox.innerHTML = `<div style="padding: 12px; background: #FFEBEE; border-left: 3px solid #E74C3C; border-radius: 6px; color: #C62828;"><strong>🚨 Alert:</strong> This customer is ${c.churnReason}.</div>`;
+            } else {
+                alertBox.innerHTML = '';
+            }
+            
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function saveCustomer(e) {
+            e.preventDefault();
+            customers[editingIndex].dateContacted = document.getElementById('dateContacted').value;
+            customers[editingIndex].intercomUrl = document.getElementById('intercomUrl').value;
+            customers[editingIndex].status = document.getElementById('status').value;
+            customers[editingIndex].team = document.getElementById('team').value;
+            customers[editingIndex].setupCallDate = document.getElementById('setupCallDate').value;
+            customers[editingIndex].notes = document.getElementById('notes').value;
+
+            updateDashboard();
+            renderCustomers();
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function exportCSV() {
+            let csv = 'comcode,company,contact,email,status,team,dateContacted,setupCallDate,intercomUrl,notes,churn,churnReason,responded\n';
+            
+            customers.forEach(c => {
+                csv += `"${c.comcode}","${c.company.replace(/"/g, '""')}","${(c.contact || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${c.status}","${c.team}","${c.dateContacted}","${c.setupCallDate}","${c.intercomUrl}","${(c.notes || '').replace(/"/g, '""')}","${c.churn}","${c.churnReason}","${c.responded}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `FOB_Migration_Data_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
